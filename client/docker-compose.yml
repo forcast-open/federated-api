@@ -9,6 +9,9 @@ services:
     volumes:
       - ./:/client
       - ../../federated/forcast_federated_learning:/client/forcast_federated_learning
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     network_mode: host
     stdin_open: true
     tty: true

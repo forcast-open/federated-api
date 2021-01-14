@@ -30,15 +30,15 @@ task = celery.send_task('tasks.database_init', args=[], kwargs={})
 # Request parsers
 
 clients_get_args = reqparse.RequestParser()
-clients_get_args.add_argument('client_id',  type=int, help='client_id is required'                           , required=True)
-clients_get_args.add_argument('return_key', type=str, help='return only the specified key of the client data')
+clients_get_args.add_argument('client_id'  , type=int, help='client_id is required'                            , required=True)
+clients_get_args.add_argument('return_keys', type=str, help='return only the specified keys of the client data', action='append')
 
 clients_post_args = reqparse.RequestParser()
-clients_post_args.add_argument('client_id'    , type=int, help='client_id is required'                               , required=True)
-clients_post_args.add_argument('weights'      , type=str, help='json pickled dictionary of model weights is required', required=True)
-clients_post_args.add_argument('state'        , type=str, help='state is required'                                   , required=True)
-clients_post_args.add_argument('data_len'     , type=int, help='data_len is required'                                , required=True)
-clients_post_args.add_argument('com_round_id' , type=str, help='com_round_id is required'                            , required=True)
+clients_post_args.add_argument('client_id'   , type=int, help='client_id is required'                               , required=True)
+clients_post_args.add_argument('weights'     , type=str, help='json pickled dictionary of model weights is required', required=True)
+clients_post_args.add_argument('state'       , type=str, help='state is required'                                   , required=True)
+clients_post_args.add_argument('data_len'    , type=int, help='data_len is required'                                , required=True)
+clients_post_args.add_argument('com_round_id', type=str, help='com_round_id is required'                            , required=True)
 
 # Resource fields for marshal serializer 
 client_resource_fields = {
@@ -55,13 +55,13 @@ class Clients(Resource):
 	def get(self):
 		data      = clients_get_args.parse_args()
 		client_id = data['client_id']
-		key       = data['return_key']
+		keys      = data['return_keys']
 		result    = ClientsData.query.filter_by(client_id=client_id).first()
 		if not result: # if client not found (result == None) return error
 			abort(404, message=f'Could not find client with id {client_id}')
 		output_dict = marshal(result, client_resource_fields)
-		if key: # if key is specified return only that element of the client information 
-			return {'client_id':client_id, key:output_dict[key]}
+		if keys: # if keys are specified return only that elements of the client information 
+			return {**{'client_id':client_id}, **dict(zip(keys, map(output_dict.get, keys)))} # join the two dictionaries
 		else: 
 			return output_dict
 
@@ -102,14 +102,14 @@ class Clients(Resource):
 # Request parsers
 
 server_get_args = reqparse.RequestParser()
-server_get_args.add_argument('server_id',  type=int, help='server_id is required'                           , required=True)
-server_get_args.add_argument('return_key', type=str, help='return only the specified key of the server data')
+server_get_args.add_argument('server_id'  , type=int, help='server_id is required'                            , required=True)
+server_get_args.add_argument('return_keys', type=str, help='return only the specified keys of the server data', action='append')
 
 server_post_args = reqparse.RequestParser()
-server_post_args.add_argument('server_id'    , type=int, help='server_id is required'                               , required=True)
-server_post_args.add_argument('weights'      , type=str, help='json pickled dictionary of model weights is required', required=True)
-server_post_args.add_argument('state'        , type=str, help='state is required'                                   , required=True)
-server_post_args.add_argument('com_round_id' , type=str, help='com_round_id is required'                            , required=True)
+server_post_args.add_argument('server_id'   , type=int, help='server_id is required'                               , required=True)
+server_post_args.add_argument('weights'     , type=str, help='json pickled dictionary of model weights is required', required=True)
+server_post_args.add_argument('state'       , type=str, help='state is required'                                   , required=True)
+server_post_args.add_argument('com_round_id', type=str, help='com_round_id is required'                            , required=True)
 
 
 # Resource fields for marshal serializer 
@@ -125,13 +125,13 @@ class Server(Resource):
 	def get(self):
 		data      = server_get_args.parse_args()
 		server_id = data['server_id']
-		key       = data['return_key']
+		keys      = data['return_keys']
 		result    = ServerData.query.filter_by(server_id=server_id).first()
 		if not result: # if server not found (result == None) return error
 			abort(404, message=f'Could not find server with id {server_id}')
 		output_dict = marshal(result, server_resource_fields)
-		if key: # if key is specified return only that element of the server information 
-			return {'server_id':server_id, key:output_dict[key]}
+		if keys: # if keys are specified return only that elements of the server information 
+			return {**{'server_id':server_id}, **dict(zip(keys, map(output_dict.get, keys)))} # join the two dictionaries
 		else: 
 			return output_dict
 

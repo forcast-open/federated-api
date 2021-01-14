@@ -5,10 +5,10 @@ import time
 # Federated imports
 import forcast_federated_learning as ffl
 
+# Parameters
 BASE = 'http://127.0.0.1:5000/'
 SERVER_ID = 0
 CLIENT_ID = 0
-device    = 'cpu'
 
 # Load local train data
 X, y, df_data, target_names = ffl.datasets.load_scikit_iris()
@@ -36,27 +36,22 @@ while count < com_rounds:
 	#### Communication round ####
 
 	# Ckeck for server state
-	resp = requests.get(BASE + 'api/v1.0/server', data={'server_id': SERVER_ID, 'return_key': 'state'})
-	server_state = resp.json()['state']
+	resp = requests.get(BASE + 'api/v1.0/server', data={'server_id': SERVER_ID, 'return_keys': ['state', 'com_round_id']})
+	server_state, server_com_id  = map(resp.json().get, ['state', 'com_round_id'])
 	if server_state != 'waiting':
 		continue
 
 	# Ckeck for client state
-	resp = requests.get(BASE + 'api/v1.0/clients', data={'client_id': CLIENT_ID, 'return_key': 'state'})
-	client_state = resp.json()['state']
-	# Check same com_round_id from server and client
-	resp = requests.get(BASE + 'api/v1.0/server', data={'server_id': SERVER_ID, 'return_key': 'com_round_id'})
-	server_com_id = resp.json()['com_round_id']
-	resp = requests.get(BASE + 'api/v1.0/clients', data={'client_id': CLIENT_ID, 'return_key': 'com_round_id'})
-	client_com_id = resp.json()['com_round_id']
-	
+	resp = requests.get(BASE + 'api/v1.0/clients', data={'client_id': CLIENT_ID, 'return_keys': ['state', 'com_round_id']})
+	client_state, client_com_id  = map(resp.json().get, ['state', 'com_round_id'])
+
 	if (client_state != 'iddle') and (server_com_id == client_com_id):
 		continue
 		
 	#### Else: Train locally ####
 
 	# Get updated server model
-	resp = requests.get(BASE + 'api/v1.0/server', data={'server_id': SERVER_ID, 'return_key': 'weights'})
+	resp = requests.get(BASE + 'api/v1.0/server', data={'server_id': SERVER_ID, 'return_keys': ['weights']})
 	weights    = resp.json()['weights']
 	state_dict = jpk.decode(weights)
 	local_model.load_state_dict(state_dict)
