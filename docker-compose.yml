@@ -21,6 +21,7 @@ services:
       - db
     env_file:
       - .database.conf
+      - .env
     stdin_open: true
     tty: true
 
@@ -36,6 +37,7 @@ services:
     command: bash -c "sleep 0 && celery -A tasks.celery worker -l info --uid=1"
     env_file:
       - .database.conf
+      - .env
     depends_on:
       - redis
       - db

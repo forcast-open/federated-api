@@ -15,7 +15,7 @@ from utils.models import ClientsData, ServerData
 from utils.worker import app, celery, db
 
 # Parameters
-SERVER_ID = 0
+SERVER_ID = os.environ.get('SERVER_ID')
 
 
 
@@ -52,9 +52,9 @@ fed_model = ffl.FederatedModel(model, model_type='nn')
 def periodic_task():
 	# Check there is server data
 	server_data   = ServerData.query.filter_by(server_id=SERVER_ID).first()
-	server_com_id = server_data.com_round_id
 	if not server_data: # if server not found (result == None) return error
 		return {'message': f'Could not find server with id {SERVER_ID}'}
+	server_com_id = server_data.com_round_id
 	
 	# Check the state of the server
 	if server_data.state == 'updated':
@@ -65,16 +65,16 @@ def periodic_task():
 	# Total number of clients in the database
 	clients_all     = ClientsData.query.all()
 	n_clients       = len( clients_all )
+	# Check existance of at least one client
+	if n_clients == 0:
+		return {'message': f'Could not find clients in the database'}
+	
 	# Ready clients: Ones that have updated their models to the database and are in the same comunication round as the server
 	clients_ready   = ClientsData.query.filter_by(state='updated').filter_by(com_round_id=server_com_id).all()
 	k_ready_clients = len( clients_ready )
 
-	# Check existance of at least one client
-	if n_clients == 0:
-		return {'message': f'Could not find clients in the database'}
-
 	percentage_of_ready_clients = 100 * k_ready_clients / n_clients
-	if percentage_of_ready_clients < 50:
+	if k_ready_clients < 10: # percentage_of_ready_clients < 50:
 		return {'message': f'{k_ready_clients} / {n_clients} ready clients not enough'}
 
 
@@ -110,7 +110,6 @@ def periodic_task():
 	for client_data in clients_ready:
 		client_data.weights       = weights
 		client_data.state         = 'iddle'
-		client_data.com_round_id  = new_server_com_id
 		client_data.last_modified = datetime.utcnow()
 		db.session.commit()
 
@@ -136,9 +135,7 @@ def database_init():
 		weights      = fed_model.state_dict()
 		com_round_id = uuid.uuid1()
 		server = ServerData(server_id=SERVER_ID, state='waiting', weights=jspk.encode(weights), com_round_id=com_round_id, last_modified = datetime.utcnow())
-		client = ClientsData(client_id=0       , state='iddle'  , weights=jspk.encode(weights), com_round_id=com_round_id, last_modified = datetime.utcnow(), data_len=1)
 		db.session.add(server)
-		db.session.add(client)
 		db.session.commit()
 		messages.append('Database loaded')
 

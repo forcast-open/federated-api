@@ -14,9 +14,7 @@ from utils.models import ClientsData, ServerData
 from utils.worker import app, api, celery, db
 
 # Parameters
-SERVER_ID = 0
-
-
+SERVER_ID = os.environ.get('SERVER_ID')
 
 # Initialize database
 task = celery.send_task('tasks.database_init', args=[], kwargs={})
@@ -31,14 +29,14 @@ task = celery.send_task('tasks.database_init', args=[], kwargs={})
 
 clients_get_args = reqparse.RequestParser()
 clients_get_args.add_argument('client_id'  , type=int, help='client_id is required'                            , required=True)
-clients_get_args.add_argument('return_keys', type=str, help='return only the specified keys of the client data', action='append')
+clients_get_args.add_argument('return_keys', type=str, help='return only the specified keys of the client data', required=False, action='append')
 
 clients_post_args = reqparse.RequestParser()
-clients_post_args.add_argument('client_id'   , type=int, help='client_id is required'                               , required=True)
+clients_post_args.add_argument('client_id'   , type=int, help='client_id can be None or int'                        , required=False)
 clients_post_args.add_argument('weights'     , type=str, help='json pickled dictionary of model weights is required', required=True)
 clients_post_args.add_argument('state'       , type=str, help='state is required'                                   , required=True)
 clients_post_args.add_argument('data_len'    , type=int, help='data_len is required'                                , required=True)
-clients_post_args.add_argument('com_round_id', type=str, help='com_round_id is required'                            , required=True)
+clients_post_args.add_argument('com_round_id', type=str, help='com_round_id is required'                            , required=False)
 
 # Resource fields for marshal serializer 
 client_resource_fields = {
@@ -74,6 +72,7 @@ class Clients(Resource):
 		client = ClientsData(client_id=data['client_id'], state=data['state'], weights=data['weights'], data_len=data['data_len'], com_round_id=data['com_round_id'], last_modified = datetime.utcnow())
 		db.session.add(client)
 		db.session.commit()
+		client_id = client.client_id
 		
 		return {'message':f'Creation of client {client_id} weights successful', 'client_id':client_id}, 201
 
@@ -90,7 +89,7 @@ class Clients(Resource):
 		result.com_round_id  = data['com_round_id']
 		result.last_modified = datetime.utcnow()
 		db.session.commit()
-		
+				
 		return {'message':f'Update of client {client_id} weights successful', 'client_id':client_id}, 202
 
 
@@ -168,21 +167,12 @@ class Server(Resource):
 
 
 
-# Check async tasks
-@app.route('/check_task/<string:task_id>')
-def check_task(task_id):
-	res = celery.AsyncResult(task_id)
-	if res.state == states.PENDING:
-		return res.state
-	else: 
-		return {'result': str(res.result)}
-
-
-# Define and add resources
+# Index
 @app.route('/')
 def index():
 	return {'message': 'FFL: Simple API with Restful'}
 
+# Define and add resources
 api.add_resource(Clients, '/api/v1.0/clients')
 api.add_resource(Server,  '/api/v1.0/server')
 
