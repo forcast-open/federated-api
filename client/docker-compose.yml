@@ -12,6 +12,10 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    env_file:
+      - ./.env
+    deploy:
+      replicas: ${NUM_CLIENTS}
     network_mode: host
     stdin_open: true
     tty: true

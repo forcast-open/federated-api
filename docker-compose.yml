@@ -5,13 +5,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    # restart: always
+    restart: always
     volumes:
       - ./app:/src
       - ./utils:/src/utils
       - ../federated/forcast_federated_learning:/src/forcast_federated_learning
-    command: bash -c "dockerize -wait tcp://db:5432 && python server.py"
-    # command: bash -c "dockerize -wait tcp://db:5432 && gunicorn --bind 0.0.0.0:5000 --access-logfile "-" server:app --reload"
+    command: bash -c "dockerize -wait tcp://db:5432 && gunicorn --bind 0.0.0.0:5000 --access-logfile "-" server:app --reload"
     ports:
       - 5000:5000
     environment:
@@ -21,6 +20,7 @@ services:
       - db
     env_file:
       - .database.conf
+      - .env
     stdin_open: true
     tty: true
 
@@ -36,6 +36,7 @@ services:
     command: bash -c "sleep 0 && celery -A tasks.celery worker -l info --uid=1"
     env_file:
       - .database.conf
+      - .env
     depends_on:
       - redis
       - db
@@ -51,6 +52,7 @@ services:
     command: bash -c "dockerize -wait tcp://web:5000 -timeout 60s -wait-retry-interval 1s && sleep 0 && celery -A tasks.celery beat -l info --pidfile="
     env_file:
       - .database.conf
+      - .env
     depends_on:
       - redis
       - db
@@ -68,6 +70,7 @@ services:
     command: bash -c "dockerize -wait tcp://web:5000 -timeout 60s -wait-retry-interval 1s && sleep 2 && celery -A tasks.celery flower --port=5555 --broker=redis://redis:6379/0"
     env_file:
       - .database.conf
+      - .env
     depends_on:
       - redis
 
