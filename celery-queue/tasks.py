@@ -15,7 +15,8 @@ from utils.models import ClientsData, ServerData
 from utils.worker import app, celery, db
 
 # Parameters
-SERVER_ID                          = os.environ.get('SERVER_ID')
+SERVER_ID                          = int( os.environ.get('SERVER_ID') )
+seed                               = int( os.environ.get('SEED') )
 k_ready_clients_needed             = 5
 percentage_of_ready_clients_needed = 100
 
@@ -41,7 +42,7 @@ celery.conf.timezone = 'UTC'
 
 # Create federated model based on a pytorch model
 num_features, num_classes = 4, 3
-model           = ffl.models.NN(input_dim=num_features, output_dim=num_classes) # pytorch model
+model           = ffl.models.NN(input_dim=num_features, output_dim=num_classes, init_seed=seed) # pytorch model
 fed_model       = ffl.FederatedModel(model, model_type='nn')
 
 
@@ -157,7 +158,7 @@ def database_init():
 def reset_server_weights(server_id):
 	# Reset the server weights to an untrained state and set a new comunication round
 	com_round_id    = uuid.uuid1()
-	initial_weights = ffl.FederatedModel(model, model_type='nn').state_dict()
+	initial_weights = model.init_weights(init_seed=seed).state_dict()
 	update_dict     = {'state':'waiting', 'weights':jspk.encode(initial_weights), 'com_round_id':com_round_id, 'last_modified':datetime.utcnow()}
 	server          = ServerData.query.filter_by(server_id=server_id).update(update_dict)
 	db.session.commit()
@@ -169,7 +170,7 @@ def reset_server_weights(server_id):
 @celery.task(name='tasks.reset_client_weights')
 def reset_client_weights(client_id):
 	# Reset the client weights to an untrained state
-	initial_weights = ffl.FederatedModel(model, model_type='nn').state_dict()
+	initial_weights = model.init_weights(init_seed=seed).state_dict()
 	update_dict     = {'state':'iddle', 'weights':jspk.encode(initial_weights), 'com_round_id':'', 'last_modified':datetime.utcnow()}
 	client          = ClientsData.query.filter_by(client_id=client_id).update(update_dict)
 	db.session.commit()

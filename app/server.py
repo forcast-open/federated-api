@@ -14,7 +14,7 @@ from utils.models import ClientsData, ServerData
 from utils.worker import app, api, celery, db
 
 # Parameters
-SERVER_ID = os.environ.get('SERVER_ID')
+SERVER_ID = int( os.environ.get('SERVER_ID') )
 
 # Initialize database
 task = celery.send_task('tasks.database_init', args=(), kwargs={})

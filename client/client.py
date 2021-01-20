@@ -13,7 +13,7 @@ SERVER_ID          = int( os.environ.get('SERVER_ID') )
 num_clients        = int( os.environ.get('NUM_CLIENTS') )
 com_rounds         = int( os.environ.get('COM_ROUNDS') )
 classes_per_client = int( os.environ.get('CLASSES_PER_CLIENT') )
-seed               = 0
+seed               = int( os.environ.get('SEED') )
 
 
 # Load local train data
