@@ -2,10 +2,12 @@ import os
 import sys
 import requests
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
 import jsonpickle as jpk
 import time
 import numpy as np
 import pandas as pd
+import torch.nn as nn
 # Federated imports
 import forcast_federated_learning as ffl
 
@@ -21,10 +23,10 @@ noise_multiplier   = 0.3
 max_grad_norm      = 0.5
 
 # Metrics
-df_metrics = pd.DataFrame(dict(zip(['round', 'accuracy', 'loss', 'epsilon', 'delta'], [int,[],[],[],[]])))
+df_metrics = pd.DataFrame(dict(zip(['round', 'rmse', 'r2_score', 'epsilon', 'delta'], [int,[],[],[],[]])))
 
 # Load local train data
-X, y, df_data, target_names = ffl.datasets.load_scikit_iris()
+X, y, df_data, description  = ffl.datasets.load_scikit_boston()
 # Split the database in train and test
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, stratify=y, random_state=seed)  
 
@@ -43,7 +45,7 @@ print('POST:', resp.json())
 CLIENT_ID = resp.json()['client_id']
 
 # Split the train data and use only a fraction
-traindata_split = ffl.data.random_non_iid_split(traindata, num_clients=num_clients, classes_per_client=classes_per_client, seed=seed) # traindata_split = ffl.data.random_split(traindata, num_clients=num_clients, seed=seed)
+traindata_split = ffl.data.random_split(traindata, num_clients=num_clients, seed=seed)
 traindata       = traindata_split[CLIENT_ID - 1]
 
 # Get data loader
@@ -66,7 +68,8 @@ train_params       = {'epochs': 4}
 # Create federated model based on a pytorch model
 num_features, num_classes  = 4, 3
 model                      = ffl.models.NN(input_dim=num_features, output_dim=num_classes) # pytorch model
-local_model                = ffl.LocalModel(model, model_type = 'nn', train_params=train_params)
+loss_fn                    = nn.MSELoss() # regression
+local_model                = ffl.LocalModel(model, model_type = 'nn', loss_fn=loss_fn, train_params=train_params)
 local_model.optimizer      = ffl.optim.Adam(local_model.parameters(), **optimizer_params)
 local_model.privacy_engine = ffl.security.PrivacyEngine(local_model, **security_params)
 local_model.privacy_engine.attach(local_model.optimizer)
