@@ -37,6 +37,7 @@ scikit-learn==0.24.0
 scipy==1.5.4
 six==1.15.0
 sklearn==0.0
+tenseal==0.3.0
 threadpoolctl==2.1.0
 toml==0.10.2
 torch==1.7.1
