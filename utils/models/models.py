@@ -32,6 +32,7 @@ class ServerData(db.Model):
 	weights       = db.Column(db.String,  nullable=False)
 	com_round_id  = db.Column(db.String,  nullable=False)
 	last_modified = db.Column(db.String,  nullable=False)
-
+	context       = db.Column(db.String,  nullable=True)
+	
 	def __repr__(self):
 		return f'Server {self.server_id} in state {self.state}'

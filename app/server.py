@@ -131,7 +131,8 @@ server_resource_fields = {
 	'server_id'   : fields.Integer,
 	'state'       : fields.String,
 	'weights'     : fields.String,
-	'com_round_id': fields.String
+	'com_round_id': fields.String,
+	'context'     : fields.String
 }
 
 # Resource: flask api

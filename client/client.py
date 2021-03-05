@@ -6,6 +6,7 @@ import jsonpickle as jpk
 import time
 import numpy as np
 import pandas as pd
+import jsonpickle as jspk
 # Federated imports
 import forcast_federated_learning as ffl
 
@@ -74,6 +75,12 @@ local_model.privacy_engine.attach(local_model.optimizer)
 inspector = ffl.security.DPModelInspector()
 print('Validated model:', inspector.validate(local_model.model))
 
+# Get for server public_key (context object)
+resp    = requests.get(BASE + 'api/v1.0/server/', data={'server_id': SERVER_ID, 'return_keys': ['context']})
+context = resp.json()['context']               # Unpack the response
+context = jspk.decode(context)                 # Decode the jsonpickle
+context = ffl.encryption.load_context(context) # Load the bytes onto a tenseal context object
+
 # Train step iterations
 round_count = 0
 while round_count < com_rounds:
@@ -110,6 +117,9 @@ while round_count < com_rounds:
 		acc, _   = local_model.test(test_loader)
 		loss     = local_model.step(train_loader)
 		weights  = local_model.state_dict()
+		enc_weights  = ffl.encryption.EncStateDict(weights) # Load the weights onto an encryptable object
+		enc_weights  = enc_weights.encrypt(context)         # Encrypt the tensors with the public key (in the context object) 
+		enc_weights  = enc_weights.serialize()
 
 		if local_model.privacy_engine: # privacy spent
 			epsilon, best_alpha = local_model.privacy_engine.get_privacy_spent(delta)
@@ -117,7 +127,7 @@ while round_count < com_rounds:
 		else: print(f'Test accuracy: {acc:.2f} - Train loss: {loss:.2f}')
 		# Send updated model to server
 		data   = {'client_id'   : CLIENT_ID, 
-				  'weights'     : jpk.encode(weights), 
+				  'weights'     : jpk.encode(enc_weights), 
 				  'state'       : 'updated',
 				  'com_round_id': server_com_id,
 				  'data_len'    : data_len}

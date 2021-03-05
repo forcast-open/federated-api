@@ -33,7 +33,7 @@ services:
       - ./celery-queue:/src
       - ./utils:/src/utils
       - ../federated/forcast_federated_learning:/src/forcast_federated_learning
-    command: bash -c "sleep 0 && celery -A tasks.celery worker -l info --uid=1"
+    command: bash -c "sleep 0 && celery -A tasks.celery worker -l info --concurrency=1 --uid=1"
     env_file:
       - .database.conf
       - .env

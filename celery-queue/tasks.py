@@ -6,6 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 import jsonpickle as jspk
 # Celary asynchronus task imports
 from celery import Celery
+from celery.task.control import inspect
 from datetime import timedelta, datetime
 # Federated imports
 import forcast_federated_learning as ffl
@@ -29,7 +30,7 @@ percentage_of_ready_clients_needed = 100
 celery.conf.beat_schedule = {
 	'Check clients updates': {
 		'task': 'tasks.check_clients_update',
-		'schedule': timedelta(milliseconds=1_000)
+		'schedule': timedelta(milliseconds=5_000)
 		}
 	}
 celery.conf.timezone = 'UTC'
@@ -44,6 +45,12 @@ celery.conf.timezone = 'UTC'
 num_features, num_classes = 4, 3
 model           = ffl.models.NN(input_dim=num_features, output_dim=num_classes, init_seed=seed) # pytorch model
 fed_model       = ffl.FederatedModel(model, model_type='nn')
+
+# Create secret and public key for encryption
+public_context, secret_key = ffl.encryption.get_context(seed=seed)
+
+# # bool variable to check if the federated update is already running
+# running_fed_update = False
 
 
 
@@ -86,27 +93,27 @@ def check_clients_update():
 	if k_ready_clients < k_ready_clients_needed: # percentage_of_ready_clients < percentage_of_ready_clients_needed:
 		return {'message': f'{k_ready_clients} / {n_clients} ready clients not enough'}
 
-
 	## Else: Everything ok ##
 	
-
 	messages = []
 	messages.append(f'{k_ready_clients} / {n_clients} ready clients, starting federated update')
 	new_server_com_id = uuid.uuid1()
-
+	print(1)
 	# Get the client weights and local data length for the federated aggregation
 	client_weights = []
 	client_lens    = []
 	# Iterate over clients database rows
 	for client_data in clients_ready:
-		client_weights.append( jspk.decode(client_data.weights) )
+		enc_weights = jspk.decode(client_data.weights) 
+		enc_weights = ffl.encryption.EncStateDict.load(public_context, enc_weights)
+		client_weights.append( enc_weights )
 		client_lens.append( client_data.data_len )
 		
 	## Update fedearted model ##
-
-	fed_model.server_agregate(client_weights, client_lens)
+	print(2)
+	fed_model.server_agregate(client_weights, client_lens, secret_key=secret_key)
 	weights = jspk.encode(fed_model.state_dict())
-
+	print(3)
 	# Update server database
 	server_data.weights       = weights
 	server_data.state         = 'waiting'
@@ -114,13 +121,13 @@ def check_clients_update():
 	server_data.last_modified = datetime.utcnow()
 	db.session.commit()
 	messages.append(f'Update of server with id {SERVER_ID}, successful')
-
+	print(4)
 	## Update the clients ##
 	for client_data in clients_ready:
 		client_data.state         = 'iddle'
 		client_data.last_modified = datetime.utcnow()
 		db.session.commit()
-
+	print(5)
 	return {'messages': messages, 'new communication round id': f'{new_server_com_id}'}
 
 
@@ -142,7 +149,13 @@ def database_init():
 	if not ServerData.query.all():
 		weights      = fed_model.state_dict()
 		com_round_id = uuid.uuid1()
-		server = ServerData(server_id=SERVER_ID, state='waiting', weights=jspk.encode(weights), com_round_id=com_round_id, last_modified = datetime.utcnow())
+		server = ServerData(server_id     = SERVER_ID, 
+							state         = 'waiting', 
+							weights       = jspk.encode(weights), 
+							com_round_id  = com_round_id, 
+							last_modified = datetime.utcnow(), 
+							context       = jspk.encode(public_context.serialize())
+							)
 		db.session.add(server)
 		db.session.commit()
 		messages.append('Database loaded')
