@@ -11,9 +11,10 @@ click-didyoumean==0.0.3
 click-plugins==1.1.1
 click-repl==0.1.6
 dataclasses==0.8
+ffl==0.3.4
 humanize==3.2.0
 idna==2.10
-importlib-metadata==3.3.0
+importlib-metadata==4.0.1
 iniconfig==1.1.1
 joblib==1.0.0
 jsonpickle==1.4.2
@@ -30,10 +31,10 @@ py==1.10.0
 pyparsing==2.4.7
 pytest==6.2.2
 python-dateutil==2.8.1
-pytz==2020.5
+pytz==2020.4
 redis==3.5.3
 requests==2.25.1
-scikit-learn==0.24.0
+scikit-learn==0.23.2
 scipy==1.5.4
 six==1.15.0
 sklearn==0.0

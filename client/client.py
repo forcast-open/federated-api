@@ -19,6 +19,7 @@ seed               = int( os.environ.get('SEED') )
 batch_size         = 1
 noise_multiplier   = 0.3
 max_grad_norm      = 0.5
+diff_privacy       = False
 
 # Metrics
 df_metrics = pd.DataFrame(dict(zip(['round', 'accuracy', 'loss', 'epsilon', 'delta'], [int,[],[],[],[]])))
@@ -68,8 +69,9 @@ num_features, num_classes  = 4, 3
 model                      = ffl.models.NN(input_dim=num_features, output_dim=num_classes) # pytorch model
 local_model                = ffl.LocalModel(model, model_type = 'nn', train_params=train_params)
 local_model.optimizer      = ffl.optim.Adam(local_model.parameters(), **optimizer_params)
-local_model.privacy_engine = ffl.security.PrivacyEngine(local_model, **security_params)
-local_model.privacy_engine.attach(local_model.optimizer)
+if diff_privacy == True:
+	local_model.privacy_engine = ffl.security.PrivacyEngine(local_model, **security_params)
+	local_model.privacy_engine.attach(local_model.optimizer)
 
 inspector = ffl.security.DPModelInspector()
 print('Validated model:', inspector.validate(local_model.model))
@@ -124,7 +126,10 @@ while round_count < com_rounds:
 		resp   = requests.put(BASE + 'api/v1.0/clients/', data=data)
 		round_count += 1
 		# Save metrics
-		df_aux       = pd.DataFrame({'round': [round_count], 'accuracy': [acc], 'loss': [loss], 'epsilon': [epsilon], 'delta':[delta] })
+		if local_model.privacy_engine: # privacy spent 
+			df_aux       = pd.DataFrame({'round': [round_count], 'accuracy': [acc], 'loss': [loss], 'epsilon': [epsilon], 'delta':[delta] })
+		else:
+			df_aux       = pd.DataFrame({'round': [round_count], 'accuracy': [acc], 'loss': [loss]})
 		df_metrics   = pd.concat([df_metrics, df_aux], axis=0)
 
 print(f'Finished {com_rounds} iterations')
