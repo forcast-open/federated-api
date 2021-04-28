@@ -30,7 +30,7 @@ You should end up with the folder structure:
 ## Run the dockerized app.
 
 <pre class="prettyprint lang-bsh">
-<code class="devsite-terminal tfo-terminal-venv">sudo docker-compose run</code>
+<code class="devsite-terminal tfo-terminal-venv">sudo docker-compose up</code>
 </pre>
 
 ## Test with a client
@@ -46,7 +46,7 @@ Go into the <code>client</code> folder.
 ## Run the dockerized client app.
 
 <pre class="prettyprint lang-bsh">
-<code class="devsite-terminal tfo-terminal-venv">sudo docker-compose run</code>
+<code class="devsite-terminal tfo-terminal-venv">sudo docker-compose up</code>
 </pre>
 
 This code will create, allocate and simulate ten clients to participate in a federated training procedure. To run this successfully the server side docker-compose must also be runing.
