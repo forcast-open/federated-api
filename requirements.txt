@@ -11,6 +11,7 @@ click-didyoumean==0.0.3
 click-plugins==1.1.1
 click-repl==0.1.6
 dataclasses==0.8
+ffl==0.3.4
 Flask==1.1.2
 Flask-Cache==0.13.1
 Flask-Migrate==2.5.3
@@ -21,7 +22,7 @@ flower==0.9.7
 gunicorn==20.0.4
 humanize==0.5.1
 idna==2.10
-importlib-metadata==3.3.0
+importlib-metadata==4.0.1
 iniconfig==1.1.1
 itsdangerous==1.1.0
 Jinja2==2.11.2
