@@ -51,6 +51,4 @@ Go into the <code>client</code> folder.
 
 This code will create, allocate and simulate ten clients to participate in a federated training procedure. To run this successfully the server side docker-compose must also be runing.
 
-In case the client simulation stops unexpectedly, in the server docker run <code>sudo rm -r postgres_data</code> to delete the local postgres database to allow the reallocation the new clients.
-
-
+In case the client simulation stops unexpectedly, in the server docker, run: <code>sudo rm -r postgres_data</code> to delete the local postgres database, to allow the reallocation of the new clients.
